@@ -1,0 +1,80 @@
+deployment: cloud
+
+jira:
+  base_url: ${JIRA_URL}
+  project: SHLD
+
+confluence:
+  base_url: ${CONFLUENCE_URL}
+  space: ${CONFLUENCE_SPACE}
+  parent_page_id: ${CONFLUENCE_PARENT_PAGE_ID}
+
+# Fiscal year calendar — auto-resolves current quarter from date
+fiscal_year_start_month: 5
+quarter_label_pattern: "ATDT_FY{fy}Q{q}"
+
+# Override to force a specific quarter (comment out for auto-detection)
+# current_quarter: ATDT_FY27Q1
+
+quarters:
+  - label: ATDT_FY27Q1
+    name: FY27 Q1
+  - label: ATDT_FY26Q4
+    name: FY26 Q4
+  - label: ATDT_FY26Q3
+    name: FY26 Q3
+
+closure_labels:
+  - ATDT_Noinfra
+  - ATDT_Noenv
+  - ATDT_nopoc
+  - atdt_notreproduced
+  - atdt_networkappliance
+
+closure_label_names:
+  ATDT_Noinfra: "No Infrastructure"
+  ATDT_Noenv: "No Environment"
+  ATDT_nopoc: "No PoC Available"
+  atdt_notreproduced: "Not Reproduced"
+  atdt_networkappliance: "Network Appliance"
+
+emulation_labels:
+  - ATDT_CVE
+  - LightCycles
+
+idd_identifier: "ATDT_IDD"
+
+sections:
+  - name: "Emulation Coverage"
+    metrics:
+      - cve_weekly_coverage
+      - lc_weekly_coverage
+  - name: "Intake vs Output"
+    metrics:
+      - cve_created_vs_resolved
+      - lc_created_vs_resolved
+  - name: "Team Output"
+    metrics:
+      - weekly_idds
+      - team_velocity
+      - idd_conversion_rate
+  - name: "Quarterly Summary"
+    metrics:
+      - q1_completion_status
+      - quarter_over_quarter
+      - closure_rate
+  - name: "Closure Analysis"
+    metrics:
+      - closure_reasons
+  - name: "Work Health"
+    metrics:
+      - work_aging
+  - name: "Request Management"
+    metrics:
+      - external_requests
+
+chart_defaults:
+  width: 10
+  height: 5
+  dpi: 150
+  style: "seaborn-v0_8-whitegrid"

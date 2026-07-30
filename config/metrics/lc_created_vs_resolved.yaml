@@ -1,0 +1,12 @@
+name: lc_created_vs_resolved
+title: "Light Cycles — Created vs. Resolved (Weekly)"
+description: "Red = new intake, Green = resolved. Gap shows backlog buildup."
+filter: >
+  project = SHLD
+  AND labels = LightCycles
+  AND issuetype != Sub-task
+measure:
+  kind: created_vs_resolved
+  weeks: 13
+chart: dual_area
+target: null

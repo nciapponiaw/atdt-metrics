@@ -1,0 +1,17 @@
+name: quarter_over_quarter
+title: "Quarter-over-Quarter Growth"
+description: "Completed emulations per quarter — showing delivery trend."
+filter: >
+  project = SHLD
+  AND (labels = ATDT_CVE OR labels = LightCycles)
+  AND issuetype != Sub-task
+  AND status = Done
+measure:
+  kind: count
+group_by:
+  - by_quarter:
+      - "{{current_quarter}}"
+      - "{{prev_quarter}}"
+      - "{{prev_prev_quarter}}"
+chart: bar
+target: null

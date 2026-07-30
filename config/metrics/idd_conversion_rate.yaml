@@ -1,0 +1,14 @@
+name: idd_conversion_rate
+title: "IDD Conversion Rate (FY27Q1)"
+description: "% of completed emulations that produced at least one Detection Request."
+filter: >
+  project = SHLD
+  AND (labels = ATDT_CVE OR labels = LightCycles)
+  AND labels = {{current_quarter}}
+  AND issuetype != Sub-task
+  AND status = Done
+measure:
+  kind: ratio
+  numerator_type: linked_idd
+chart: big_number
+target: null

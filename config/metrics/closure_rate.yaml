@@ -1,0 +1,23 @@
+name: closure_rate
+title: "Closure Rate (FY27Q1)"
+description: "% of Q1 emulations Closed without completion — lower is better."
+filter: >
+  project = SHLD
+  AND (labels = ATDT_CVE OR labels = LightCycles)
+  AND labels = {{current_quarter}}
+  AND issuetype != Sub-task
+measure:
+  kind: ratio
+  numerator_jql: >
+    project = SHLD
+    AND (labels = ATDT_CVE OR labels = LightCycles)
+    AND labels = {{current_quarter}}
+    AND issuetype != Sub-task
+    AND status = Closed
+  denominator_jql: >
+    project = SHLD
+    AND (labels = ATDT_CVE OR labels = LightCycles)
+    AND labels = {{current_quarter}}
+    AND issuetype != Sub-task
+chart: big_number
+target: null

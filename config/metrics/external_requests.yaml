@@ -1,0 +1,16 @@
+name: external_requests
+title: "External Requests (FY27Q1)"
+description: "Requests from other teams — status breakdown."
+filter: >
+  project = SHLD
+  AND labels = ATDTRequest
+  AND labels = {{current_quarter}}
+measure:
+  kind: count
+group_by:
+  - by_value:
+      Done: "status = Done"
+      Closed: "status = Closed"
+      Open: "status NOT IN (Done, Closed)"
+chart: bar
+target: null

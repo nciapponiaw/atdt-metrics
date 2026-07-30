@@ -1,0 +1,20 @@
+name: closure_reasons
+title: "FY27Q1 Closure Reasons"
+description: "Why emulations were closed without completion — identifies systemic blockers."
+filter: >
+  project = SHLD
+  AND (labels = ATDT_CVE OR labels = LightCycles)
+  AND labels = {{current_quarter}}
+  AND issuetype != Sub-task
+  AND status = Closed
+measure:
+  kind: count
+group_by:
+  - by_value:
+      No Infrastructure: 'labels = "ATDT_Noinfra"'
+      No Environment: 'labels = "ATDT_Noenv"'
+      No PoC Available: 'labels = "ATDT_nopoc"'
+      Not Reproduced: 'labels = "atdt_notreproduced"'
+      Network Appliance: 'labels = "atdt_networkappliance"'
+chart: horizontal_bar
+target: null

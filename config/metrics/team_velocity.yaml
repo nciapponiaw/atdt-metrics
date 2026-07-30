@@ -1,0 +1,19 @@
+name: team_velocity
+title: "Team Velocity (Weekly)"
+description: "Emulations completed per week — CVE vs LightCycles — with rolling average."
+filter: >
+  project = SHLD
+  AND (labels = ATDT_CVE OR labels = LightCycles)
+  AND issuetype != Sub-task
+  AND status = Done
+measure:
+  kind: count
+group_by:
+  - by_week:
+      window: last_91d
+      date_field: resolved
+  - by_value:
+      CVE: 'labels = "ATDT_CVE"'
+      LightCycles: 'labels = "LightCycles"'
+chart: stacked_bar_with_trend
+target: null

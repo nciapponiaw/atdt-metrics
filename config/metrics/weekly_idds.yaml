@@ -1,0 +1,14 @@
+name: weekly_idds
+title: "Weekly Intel-Driven Detections (IDDs)"
+description: "ATDT-created Detection Requests per week — direct output from emulations."
+filter: >
+  project = IDR
+  AND labels = ATDT_IDD
+measure:
+  kind: count
+group_by:
+  - by_week:
+      window: last_91d
+      date_field: created
+chart: bar
+target: null

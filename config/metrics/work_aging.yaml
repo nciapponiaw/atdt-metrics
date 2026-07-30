@@ -1,0 +1,15 @@
+name: work_aging
+title: "Aging Work (14+ days stale)"
+description: "Open emulations with no update in 14+ days — signals stuck work."
+filter: >
+  project = SHLD
+  AND (labels = ATDT_CVE OR labels = LightCycles)
+  AND labels = {{current_quarter}}
+  AND issuetype != Sub-task
+  AND status NOT IN (Done, Closed)
+  AND updated <= "-14d"
+measure:
+  kind: count
+group_by: []
+chart: big_number
+target: 0
