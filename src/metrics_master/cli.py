@@ -23,6 +23,10 @@ def main() -> None:
     run_parser.add_argument("--metric", help="Run a single metric by name")
     run_parser.add_argument("--dry-run", action="store_true", help="Render locally, don't publish")
     run_parser.add_argument("--quarter", help="Override quarter (e.g., ATDT_FY27Q1)")
+    run_parser.add_argument(
+        "--weekly", action="store_true",
+        help="Run only the weekly-cadence metrics listed under weekly_metrics in config/settings.yaml",
+    )
 
     # compute
     compute_parser = subparsers.add_parser("compute", help="Compute metrics (no render/publish)")
@@ -44,6 +48,7 @@ def main() -> None:
         summary = run(
             metric_filter=args.metric,
             dry_run=args.dry_run,
+            weekly=args.weekly,
         )
         print(json.dumps(summary, indent=2))
         if summary.get("errors"):

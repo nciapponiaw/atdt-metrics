@@ -11,10 +11,10 @@ from .registry import load_all_metrics, load_settings
 from .render.charts import RENDERERS
 from .render.page_builder import build_page
 
-PAGE_TITLE = "Computed Metrics (Automated)"
+PAGE_TITLE = "Computed Metrics MA"
 
 
-def run(metric_filter: str | None = None, dry_run: bool = False) -> dict[str, Any]:
+def run(metric_filter: str | None = None, dry_run: bool = False, weekly: bool = False) -> dict[str, Any]:
     """Execute the full pipeline. Returns summary dict."""
     settings = load_settings()
     configs = load_all_metrics()
@@ -23,6 +23,12 @@ def run(metric_filter: str | None = None, dry_run: bool = False) -> dict[str, An
         configs = [m for m in configs if m["name"] == metric_filter]
         if not configs:
             return {"error": f"Metric '{metric_filter}' not found"}
+
+    if weekly:
+        weekly_names = set(settings.get("weekly_metrics", []))
+        configs = [m for m in configs if m["name"] in weekly_names]
+        if not configs:
+            return {"error": "No weekly metrics configured (see weekly_metrics in config/settings.yaml)"}
 
     engine = MetricEngine(settings)
     results = engine.compute_all(configs)

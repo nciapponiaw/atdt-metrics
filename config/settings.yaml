@@ -44,6 +44,16 @@ emulation_labels:
 
 idd_identifier: "ATDT_IDD"
 
+# Metrics run by `cli run --weekly` — the weekly-cadence subset (used for fast
+# weekly check-ins instead of the full quarterly publish). Add a metric name
+# here to include it; order has no effect on rendering (sections/ below control that).
+weekly_metrics:
+  - cve_weekly_coverage
+  - lc_weekly_coverage
+  - cve_created_vs_resolved
+  - lc_created_vs_resolved
+  - weekly_idds
+
 sections:
   - name: "Emulation Coverage"
     metrics:
