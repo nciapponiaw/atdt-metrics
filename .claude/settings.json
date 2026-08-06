@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(python -m metrics_master.cli run*)",
+      "Bash(python -m metrics_master.cli compute*)",
+      "Bash(python -m metrics_master.cli validate*)",
+      "Bash(python -m metrics_master.cli add-metric*)",
+      "Bash(.venv/bin/python -m metrics_master.cli*)",
+      "Bash(python -m venv*)",
+      "Bash(source .venv/bin/activate*)",
+      "Bash(pip install*)",
+      "Bash(pytest*)",
+      "Bash(python -m pytest*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Read(config/**)",
+      "Read(src/**)",
+      "Read(tests/**)",
+      "Read(output/**)",
+      "Read(.claude/**)",
+      "Edit(config/metrics/**)",
+      "Edit(config/settings.yaml)",
+      "mcp__atlassian__fetch",
+      "mcp__atlassian__getAccessibleAtlassianResources"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(git push*)",
+      "Edit(.env*)",
+      "Edit(.state.json)"
+    ]
+  }
+}
