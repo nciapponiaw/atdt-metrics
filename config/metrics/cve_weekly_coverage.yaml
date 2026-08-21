@@ -1,17 +1,25 @@
 name: cve_weekly_coverage
-title: "CVE Emulation Progress"
-description: "Current quarter CVE emulations: completed vs total."
+title: "CVEs covered by week"
+description: "Emulations covered by week"
 filter: >
-  project = SHLD
-  AND labels = ATDT_CVE
-  AND labels = {{current_quarter}}
+  project = "Threat Research and Development"
+  AND type in ("Story")
+  AND labels in (ATDT_CVE)
+  AND created >= -35d
   AND issuetype != Sub-task
 measure:
   kind: count
 group_by:
+  - by_week:
+      window: last_35d
+      date_field: created
+      range_label: true
   - by_value:
-      Done: "status = Done"
-      Closed: "status = Closed"
-      In Progress: "status NOT IN (Done, Closed)"
-chart: horizontal_bar
+      Emulation Completed: "status IN (Done, Closed)"
+      Emulation Not Started or In Progress: "status NOT IN (Done, Closed)"
+chart: stacked_bar
+chart_kwargs:
+  hide_title: true
+  footer_totals: true
+  period_description: "last 5 weeks (grouped Weekly, based on Created date)"
 target: null

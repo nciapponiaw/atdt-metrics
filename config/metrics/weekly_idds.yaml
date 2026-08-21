@@ -1,14 +1,24 @@
 name: weekly_idds
 title: "Weekly Intel-Driven Detections (IDDs)"
-description: "ATDT-created Detection Requests per week — direct output from emulations."
+description: "This bar chart displays the number of IDDs created each week over the last 5 weeks."
 filter: >
-  project = IDR
-  AND labels = ATDT_IDD
+  project = "Integration, Detection, & Response"
+  AND type in ("Detection Request", "Focus Detection Request")
+  AND labels in (ATDT_IDD)
+  AND issuetype != Sub-task
 measure:
   kind: count
 group_by:
   - by_week:
-      window: last_91d
+      window: last_35d
       date_field: created
-chart: bar
+      range_label: true
+  - by_value:
+      IDD Completed: "status IN (Done, Closed)"
+      IDD Not Started or In Progress: "status NOT IN (Done, Closed)"
+chart: stacked_bar
+chart_kwargs:
+  hide_title: true
+  footer_totals: true
+  period_description: "last 5 weeks (grouped Weekly, based on Created date)"
 target: null

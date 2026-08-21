@@ -10,7 +10,7 @@ from pathlib import Path
 import yaml
 
 from .registry import load_all_metrics, load_metric, load_settings, validate_metric
-from .publish import run
+from .publish import run, run_quarterly_report
 from .engine import MetricEngine
 
 
@@ -45,13 +45,23 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "run":
-        summary = run(
-            metric_filter=args.metric,
-            dry_run=args.dry_run,
-            weekly=args.weekly,
-        )
+        if args.quarter:
+            if args.metric or args.weekly:
+                print(
+                    "ERROR: --quarter cannot be combined with --metric or --weekly "
+                    "(it targets the Quarterly Metrics Summary report, not the regular metrics page)",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            summary = run_quarterly_report(quarter_label=args.quarter, dry_run=args.dry_run)
+        else:
+            summary = run(
+                metric_filter=args.metric,
+                dry_run=args.dry_run,
+                weekly=args.weekly,
+            )
         print(json.dumps(summary, indent=2))
-        if summary.get("errors"):
+        if summary.get("errors") or summary.get("error"):
             sys.exit(1)
 
     elif args.command == "compute":

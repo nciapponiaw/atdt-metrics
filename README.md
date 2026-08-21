@@ -65,7 +65,7 @@ cp .env.example .env
 /run-metrics                              # full pipeline — compute + publish to Confluence
 /run-metrics --weekly                     # publish only the weekly-cadence metrics
 /run-metrics --metric team_velocity       # publish a single metric
-/run-metrics --quarter ATDT_FY26Q4        # override the auto-detected quarter
+/run-metrics --quarter ATDT_FY26Q4        # publish/update the Quarterly Metrics Summary report for that quarter (separate page — see below)
 
 /dry-run-metrics                          # render output/page_preview.html — no publish
 /dry-run-metrics --metric team_velocity   # preview a single metric
@@ -88,6 +88,9 @@ python -m metrics_master.cli run --metric team_velocity
 
 # Weekly-cadence metrics only (see weekly_metrics in config/settings.yaml)
 python -m metrics_master.cli run --weekly
+
+# Quarterly Metrics Summary report — a separate page, not the metrics page above
+python -m metrics_master.cli run --quarter ATDT_FY27Q1
 
 # Compute only (no render/publish) — agent-friendly JSON output
 python -m metrics_master.cli compute --format json
@@ -133,8 +136,8 @@ confluence_client.py            → Creates/updates child page + uploads attachm
 - **Count-first** — prefers Jira's approximate-count endpoint (zero issue data fetched) over search. Only uses `search` when per-issue fields are needed (link traversal).
 - **Config-driven** — each metric is a standalone YAML with filter, measure kind, dimensions, and chart type. No code changes needed to add a metric.
 - **Sub-task exclusion** — all emulation metrics filter with `issuetype != Sub-task` to count Stories (actual emulations), not their child tasks.
-- **Idempotent publishing** — re-running updates the existing child page (title `"Computed Metrics MA"`) in place. Never creates duplicates.
-- **Child page isolation** — only touches its own page. Never reads or writes the parent or sibling pages.
+- **Idempotent publishing** — re-running updates the existing page in place (per-page — see below). Never creates duplicates.
+- **Child page isolation, two owned pages** — the pipeline owns exactly two Confluence targets and never reads or writes anything outside them: the regular metrics page (title `"Computed Metrics MA"`, one page, updated by plain `run`) and, per quarter, a `"<label> - Quarterly Metrics Summary"` report page (published by `run --quarter <label>`, under a separate configured parent — full detail in `.claude/skills/metrics-publisher/references/confluence-contract.md`).
 - **No MCP dependency** — plain Python + REST API tokens, runnable headless via cron/CI.
 
 ## Metrics (13 total)

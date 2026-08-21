@@ -108,6 +108,58 @@ def search(jql: str, fields: list[str], max_results: int = 100) -> list[dict]:
     return issues
 
 
+def get_confluence_remote_links(issue_key: str) -> list[dict]:
+    """Fetch Jira's 'Confluence content' backlinks for an issue — the pages Jira
+    itself has detected as referencing this issue (the same data the issue's
+    Confluence content panel shows). Returns [{"title", "url", "page_id"}].
+    """
+    cache_key = f"remotelink:{issue_key}"
+    if cache_key in _cache:
+        return _cache[cache_key]
+
+    client = _get_session()
+    resp = client.get(f"/rest/api/3/issue/{issue_key}/remotelink")
+    resp.raise_for_status()
+
+    links: list[dict] = []
+    for item in resp.json():
+        if item.get("application", {}).get("type") != "com.atlassian.confluence":
+            continue
+        obj = item.get("object", {})
+        title = obj.get("title", "")
+        url = obj.get("url", "")
+        if not (title and url):
+            continue
+        global_id = item.get("globalId", "")
+        page_id = global_id.split("pageId=")[-1] if "pageId=" in global_id else ""
+        links.append({"title": title, "url": url, "page_id": page_id})
+
+    _cache[cache_key] = links
+    return links
+
+
+def get_rendered_description(issue_key: str) -> str:
+    """Fetch a single issue's description rendered as HTML, or "" if empty.
+
+    Used only as a raw-excerpt fallback (verbatim source text, not a generated
+    summary) when no linked Confluence page exists to excerpt from instead.
+    """
+    cache_key = f"rendered_desc:{issue_key}"
+    if cache_key in _cache:
+        return _cache[cache_key]
+
+    client = _get_session()
+    resp = client.get(
+        f"/rest/api/3/issue/{issue_key}",
+        params={"fields": "description", "expand": "renderedFields"},
+    )
+    resp.raise_for_status()
+    html = resp.json().get("renderedFields", {}).get("description", "") or ""
+
+    _cache[cache_key] = html
+    return html
+
+
 def get_issue_changelog(issue_key: str) -> list[dict]:
     """Fetch changelog for a single issue (needed for time-in-status)."""
     cache_key = f"changelog:{issue_key}"

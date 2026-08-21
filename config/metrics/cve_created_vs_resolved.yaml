@@ -1,12 +1,18 @@
 name: cve_created_vs_resolved
-title: "CVEs — Created vs. Resolved (Weekly)"
+title: "CVEs - Created vs. Resolved"
 description: "Red = new intake, Green = resolved. Gap shows backlog buildup."
 filter: >
   project = SHLD
   AND labels = ATDT_CVE
-  AND issuetype != Sub-task
+  AND issuetype = Story
 measure:
   kind: created_vs_resolved
-  weeks: 13
+  weeks: 5
+  resolved_filter: "status in (Done, Closed)"
+  label_format: day_first
 chart: dual_area
+chart_kwargs:
+  hide_title: true
+  footer_created_resolved: true
+  period_description: "last 30 days (grouped Weekly)"
 target: null

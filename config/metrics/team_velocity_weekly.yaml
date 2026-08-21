@@ -1,0 +1,17 @@
+name: team_velocity_weekly
+title: "Team Velocity (Weekly)"
+description: "Weekly completion velocity for CVE and Light Cycle emulations over the last 8 intervals."
+filter: >
+  project = "Threat Research and Development"
+  AND labels in (ATDT_CVE, LightCycles)
+  AND status in (Done, Closed)
+  AND issuetype = Story
+measure:
+  kind: velocity
+  weeks: 8
+  display_weeks: 8
+  date_field: resolved
+chart: bar_with_velocity
+chart_kwargs:
+  hide_title: true
+target: null

@@ -25,8 +25,18 @@ def week_boundaries(num_weeks: int = 8, end: date | None = None) -> list[tuple[d
     return weeks
 
 
-def week_label(monday: date) -> str:
-    """Human-readable week label: 'Jan 6' format."""
+def week_label(monday: date, range_format: bool = False, day_first: bool = False) -> str:
+    """Human-readable week label.
+
+    range_format=False, day_first=False: 'Jan 6'
+    range_format=True:                   'Jan 6 – Jan 12'
+    day_first=True:                      '6-Jan'
+    """
+    if range_format:
+        sunday = monday + timedelta(days=6)
+        return f"{monday.strftime('%b %-d')} – {sunday.strftime('%b %-d')}"
+    if day_first:
+        return f"{monday.day}-{monday.strftime('%b')}"
     return monday.strftime("%b %-d")
 
 
