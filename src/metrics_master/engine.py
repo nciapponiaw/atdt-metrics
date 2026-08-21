@@ -67,6 +67,7 @@ class MetricEngine:
             "created_vs_resolved": self._compute_created_vs_resolved,
             "ratio": self._compute_ratio,
             "duration": self._compute_duration,
+            "velocity": self._compute_velocity,
         }
         handler = dispatch.get(kind)
         if not handler:
@@ -120,15 +121,21 @@ class MetricEngine:
 
     def _compute_created_vs_resolved(self, config: dict) -> tuple[Any, str]:
         base_jql = config["filter"].strip()
-        num_weeks = config["measure"].get("weeks", 13)
+        measure = config["measure"]
+        num_weeks = measure.get("weeks", 13)
+        resolved_extra = measure.get("resolved_filter", "")
+        label_format = measure.get("label_format", "default")
         weeks = week_boundaries(num_weeks)
+
+        resolved_jql = f"{base_jql} AND {resolved_extra}" if resolved_extra else base_jql
 
         data: dict[str, dict[str, int]] = {}
         for monday, sunday in weeks:
             sun1 = sunday + timedelta(days=1)
             created = jira_client.count(f'{base_jql} AND created >= "{monday}" AND created <= "{sun1}"')
-            resolved = jira_client.count(f'{base_jql} AND resolved >= "{monday}" AND resolved <= "{sun1}"')
-            data[week_label(monday)] = {"Created": created, "Resolved": resolved}
+            resolved = jira_client.count(f'{resolved_jql} AND resolved >= "{monday}" AND resolved <= "{sun1}"')
+            lbl = week_label(monday, day_first=(label_format == "day_first"))
+            data[lbl] = {"Created": created, "Resolved": resolved}
 
         total_created = sum(d["Created"] for d in data.values())
         total_resolved = sum(d["Resolved"] for d in data.values())
@@ -158,6 +165,41 @@ class MetricEngine:
             return None, "No Data"
 
         return None, "No Data"
+
+    def _compute_velocity(self, config: dict) -> tuple[Any, str]:
+        """Compute weekly velocity: completions per week with rolling average."""
+        base_jql = config["filter"].strip()
+        measure = config["measure"]
+        num_weeks = measure.get("weeks", 8)
+        display_weeks = measure.get("display_weeks", 5)
+        date_field = measure.get("date_field", "resolved")
+        weeks = week_boundaries(num_weeks)
+
+        all_counts = []
+        for monday, sunday in weeks:
+            sun1 = sunday + timedelta(days=1)
+            count = jira_client.count(
+                f'{base_jql} AND {date_field} >= "{monday}" AND {date_field} <= "{sun1}"'
+            )
+            all_counts.append((monday, sunday, count))
+
+        avg_velocity = sum(c for _, _, c in all_counts) / len(all_counts) if all_counts else 0
+
+        display_data = {}
+        for monday, sunday, count in all_counts[-display_weeks:]:
+            label = f"{monday.strftime('%m/%d/%y')} - {sunday.strftime('%m/%d/%y')}"
+            trailing = [c for _, _, c in all_counts[:all_counts.index((monday, sunday, count)) + 1]]
+            trailing_avg = sum(trailing) / len(trailing) if trailing else 0
+            display_data[label] = {"completed": count, "avg_velocity": round(trailing_avg, 2)}
+
+        last_completed = all_counts[-1][2] if all_counts else 0
+        summary = f"Last interval: {last_completed} completed | Avg velocity (8w): {avg_velocity:.2f}"
+
+        return {
+            "weeks": display_data,
+            "last_completed": last_completed,
+            "avg_velocity": round(avg_velocity, 2),
+        }, summary
 
     def _compute_duration(self, config: dict) -> tuple[Any, str]:
         base_jql = config["filter"].strip()

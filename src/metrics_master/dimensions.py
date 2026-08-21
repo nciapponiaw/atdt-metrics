@@ -9,31 +9,34 @@ from . import jira_client
 from .windows import week_boundaries, week_label
 
 
-def _parse_week_spec(spec) -> tuple[int, str]:
-    """Parse by_week spec — supports string or dict with window + date_field."""
+def _parse_week_spec(spec) -> tuple[int, str, bool]:
+    """Parse by_week spec — supports string or dict with window + date_field + range_label."""
     if isinstance(spec, str):
         window = spec
         date_field = "resolved"
+        range_label = False
     elif isinstance(spec, dict):
         window = spec.get("window", "last_56d")
         date_field = spec.get("date_field", "resolved")
+        range_label = spec.get("range_label", False)
     else:
         window = "last_56d"
         date_field = "resolved"
+        range_label = False
 
     if isinstance(window, str) and window.startswith("last_"):
         days = int(window.replace("last_", "").replace("d", ""))
     else:
         days = 56
 
-    return days // 7, date_field
+    return days // 7, date_field, range_label
 
 
 def resolve_dimension(dim_spec: dict, base_jql: str, settings: dict) -> dict[str, Any]:
     """Dispatch to the appropriate dimension resolver. Returns {segment_label: count}."""
     if "by_week" in dim_spec:
-        num_weeks, date_field = _parse_week_spec(dim_spec["by_week"])
-        return _by_week(base_jql, num_weeks, date_field)
+        num_weeks, date_field, range_label = _parse_week_spec(dim_spec["by_week"])
+        return _by_week(base_jql, num_weeks, date_field, range_label)
     elif "by_quarter" in dim_spec:
         return _by_quarter(base_jql, dim_spec["by_quarter"], settings)
     elif "by_value" in dim_spec:
@@ -49,13 +52,13 @@ def resolve_dimension(dim_spec: dict, base_jql: str, settings: dict) -> dict[str
 def resolve_dimension_jql(dim_spec: dict, base_jql: str, settings: dict) -> dict[str, str]:
     """Return {display_label: full_jql} for each segment."""
     if "by_week" in dim_spec:
-        num_weeks, date_field = _parse_week_spec(dim_spec["by_week"])
+        num_weeks, date_field, range_label = _parse_week_spec(dim_spec["by_week"])
         weeks = week_boundaries(num_weeks)
         result = {}
         for monday, sunday in weeks:
             sun1 = sunday + timedelta(days=1)
             jql = f'{base_jql} AND {date_field} >= "{monday}" AND {date_field} <= "{sun1}"'
-            result[week_label(monday)] = jql
+            result[week_label(monday, range_format=range_label)] = jql
         return result
     elif "by_quarter" in dim_spec:
         quarter_labels = dim_spec["by_quarter"]
@@ -90,7 +93,7 @@ def resolve_dimension_jql(dim_spec: dict, base_jql: str, settings: dict) -> dict
         raise ValueError(f"Unknown dimension spec: {dim_spec}")
 
 
-def _by_week(base_jql: str, num_weeks: int, date_field: str) -> dict[str, int]:
+def _by_week(base_jql: str, num_weeks: int, date_field: str, range_label: bool = False) -> dict[str, int]:
     """Count issues per Monday-start week using the specified date field."""
     weeks = week_boundaries(num_weeks)
     results = {}
@@ -98,7 +101,7 @@ def _by_week(base_jql: str, num_weeks: int, date_field: str) -> dict[str, int]:
     for monday, sunday in weeks:
         sun1 = sunday + timedelta(days=1)
         jql = f'{base_jql} AND {date_field} >= "{monday}" AND {date_field} <= "{sun1}"'
-        results[week_label(monday)] = jira_client.count(jql)
+        results[week_label(monday, range_format=range_label)] = jira_client.count(jql)
 
     return results
 

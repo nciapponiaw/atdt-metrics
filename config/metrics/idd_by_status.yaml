@@ -1,0 +1,25 @@
+name: idd_by_status
+title: "All IDDs by Status"
+description: "Total IDD opportunities broken down by current status."
+filter: >
+  project = "Integration, Detection, & Response"
+  AND type in ("Detection Request", "Focus Detection Request")
+  AND labels in (ATDT_IDD)
+  AND issuetype != Sub-task
+measure:
+  kind: count
+group_by:
+  - by_value:
+      Backlog: "status = Backlog"
+      In Progress: "status = 'In Progress'"
+      RFR: "status = RFR"
+      Blocked: "status = Blocked"
+      In Verification: "status = 'In Verification'"
+      Done: "status = Done"
+      Closed: "status = Closed"
+chart: pie
+chart_kwargs:
+  hide_title: true
+  footer_totals: true
+  period_description: "Statistic Type: Status"
+target: null

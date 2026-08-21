@@ -8,6 +8,11 @@ confluence:
   base_url: ${CONFLUENCE_URL}
   space: ${CONFLUENCE_SPACE}
   parent_page_id: ${CONFLUENCE_PARENT_PAGE_ID}
+  # Fixed destination for the per-quarter Quarterly Metrics Summary report
+  # (run --quarter <label>) — a distinct page tree from parent_page_id above.
+  quarterly_report_parent_page_id: "6627655976"  # TESTS MA
+  # TIO Tippers parent page in the CTI space — child pages are individual tippers
+  tio_tippers_parent_page_id: "6667731131"
 
 # Fiscal year calendar — auto-resolves current quarter from date
 fiscal_year_start_month: 5
@@ -17,6 +22,8 @@ quarter_label_pattern: "ATDT_FY{fy}Q{q}"
 # current_quarter: ATDT_FY27Q1
 
 quarters:
+  - label: ATDT_FY27Q2
+    name: FY27 Q2
   - label: ATDT_FY27Q1
     name: FY27 Q1
   - label: ATDT_FY26Q4
@@ -44,6 +51,18 @@ emulation_labels:
 
 idd_identifier: "ATDT_IDD"
 
+# Metrics run by `cli run --weekly` — the weekly-cadence subset (used for fast
+# weekly check-ins instead of the full quarterly publish). Add a metric name
+# here to include it; order has no effect on rendering (sections/ below control that).
+weekly_metrics:
+  - cve_weekly_coverage
+  - lc_weekly_coverage
+  - cve_created_vs_resolved
+  - lc_created_vs_resolved
+  - weekly_idds
+  - idd_by_status
+  - team_velocity_weekly
+
 sections:
   - name: "Emulation Coverage"
     metrics:
@@ -56,8 +75,12 @@ sections:
   - name: "Team Output"
     metrics:
       - weekly_idds
+      - idd_by_status
       - team_velocity
       - idd_conversion_rate
+  - name: "Team Velocity"
+    metrics:
+      - team_velocity_weekly
   - name: "Quarterly Summary"
     metrics:
       - q1_completion_status

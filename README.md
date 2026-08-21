@@ -1,6 +1,51 @@
 # atdt-metrics
 
-Automated Jira metrics pipeline for the Advanced Threat Defense Team (ATDT). Computes delivery metrics from Jira data and publishes chart images to a Confluence child page.
+A **Claude Code agentic workspace** that automates the ATDT team's Jira delivery metrics.
+Configure metrics as YAML in `config/metrics/`, run a slash command, and the pipeline
+computes coverage, velocity, IDD, and closure-analysis metrics from Jira and publishes
+chart images to a dedicated Confluence child page — idempotently, headlessly, and without
+ever loading a raw Jira issue into an agent's context.
+
+> **Commands**: `/run-metrics`, `/dry-run-metrics`, `/validate-metrics`, `/add-metric` — run
+> from a Claude Code session opened in this workspace. Raw CLI (`python -m metrics_master.cli
+> ...`) works standalone too — see [Usage](#usage). See [Workspace Configuration](#workspace-configuration)
+> for how it's wired.
+
+---
+
+## Documentation Map
+
+Four docs, four jobs — read them in this order on day one:
+
+| Doc | Read it when you need… | Audience |
+|---|---|---|
+| **`README.md`** (this file) | What the pipeline is, how it's wired, first-time setup, how to run it | Everyone — **start here** |
+| **`CLAUDE.md`** | The always-loaded, agent-facing contract: agent roster, non-negotiable rules, architecture | Agents + the humans extending them |
+| **`MAINTENANCE.md`** | To safely change anything under `.claude/`, `config/`, or `src/`: the cross-file **contracts**, the step-by-step **change recipes**, and the copy-paste **Pre-Commit Verification** | Maintainers / the new owner |
+| **`WORKFLOW_Short-Explanation.md`** | A one-page walkthrough of the pipeline — config → compute → render → publish, and which command/agent does what | Everyone — quick refresher |
+
+> **New owner?** Read this README once top-to-bottom, run a single `/dry-run-metrics` to watch
+> the pipeline, then keep `MAINTENANCE.md` open whenever you edit the workspace.
+
+---
+
+## Workspace Configuration
+
+The agent roster, skills, and Python pipeline are wired together through the `.claude/`
+configuration layer:
+
+| Concept | Where it lives |
+|---|---|
+| Root instructions | `CLAUDE.md` (always loaded) |
+| Slash commands | `.claude/commands/*.md` — each delegates to exactly one agent (`agent:` frontmatter) |
+| Agent enforcement | `.claude/agents/*.md` (role + constraints + output contract) |
+| Agent knowledge | `.claude/skills/*/SKILL.md` (`user-invocable: false`) |
+| Reference knowledge | `.claude/skills/*/references/*.md` — metric YAML schema, JQL conventions, Confluence contract |
+| Tool permissions | `.claude/settings.json` (project-wide allow/deny) + per-agent `tools:` frontmatter |
+| Model selection | `model` frontmatter on each command/agent |
+| Agent roster | `metrics-runner` (read-only: dry-run, validate) · `metric-author` (creates/edits metric configs) · `metrics-publisher` (the only agent that writes to Confluence) — full contracts in `CLAUDE.md` → *Agent workspace* |
+
+---
 
 ## Setup
 
@@ -14,6 +59,23 @@ cp .env.example .env
 
 ## Usage
 
+### Via slash commands (in a Claude Code session opened here)
+
+```
+/run-metrics                              # full pipeline — compute + publish to Confluence
+/run-metrics --weekly                     # publish only the weekly-cadence metrics
+/run-metrics --metric team_velocity       # publish a single metric
+/run-metrics --quarter ATDT_FY26Q4        # publish/update the Quarterly Metrics Summary report for that quarter (separate page — see below)
+
+/dry-run-metrics                          # render output/page_preview.html — no publish
+/dry-run-metrics --metric team_velocity   # preview a single metric
+
+/validate-metrics                         # check all metric configs
+/add-metric my_new_metric                 # scaffold + fill + register + validate + dry-run
+```
+
+### Via raw CLI (what the commands call under the hood — works headless/cron too)
+
 ```bash
 # Full pipeline — compute all metrics and publish to Confluence
 python -m metrics_master.cli run
@@ -23,6 +85,12 @@ python -m metrics_master.cli run --dry-run
 
 # Single metric
 python -m metrics_master.cli run --metric team_velocity
+
+# Weekly-cadence metrics only (see weekly_metrics in config/settings.yaml)
+python -m metrics_master.cli run --weekly
+
+# Quarterly Metrics Summary report — a separate page, not the metrics page above
+python -m metrics_master.cli run --quarter ATDT_FY27Q1
 
 # Compute only (no render/publish) — agent-friendly JSON output
 python -m metrics_master.cli compute --format json
@@ -40,7 +108,7 @@ python -m metrics_master.cli add-metric my_new_metric
 ## Architecture
 
 ```
-config/settings.yaml            → Fiscal calendar, labels, section layout
+config/settings.yaml            → Fiscal calendar, labels, section layout, weekly_metrics
 config/metrics/*.yaml           → One YAML per metric (supports {{template}} vars)
          ↓
 registry.py                     → Loads configs, resolves {{current_quarter}} etc.
@@ -68,8 +136,8 @@ confluence_client.py            → Creates/updates child page + uploads attachm
 - **Count-first** — prefers Jira's approximate-count endpoint (zero issue data fetched) over search. Only uses `search` when per-issue fields are needed (link traversal).
 - **Config-driven** — each metric is a standalone YAML with filter, measure kind, dimensions, and chart type. No code changes needed to add a metric.
 - **Sub-task exclusion** — all emulation metrics filter with `issuetype != Sub-task` to count Stories (actual emulations), not their child tasks.
-- **Idempotent publishing** — re-running updates the existing "Computed Metrics (Automated)" page in place. Never creates duplicates.
-- **Child page isolation** — only touches its own page. Never reads or writes the parent or sibling pages.
+- **Idempotent publishing** — re-running updates the existing page in place (per-page — see below). Never creates duplicates.
+- **Child page isolation, two owned pages** — the pipeline owns exactly two Confluence targets and never reads or writes anything outside them: the regular metrics page (title `"Computed Metrics MA"`, one page, updated by plain `run`) and, per quarter, a `"<label> - Quarterly Metrics Summary"` report page (published by `run --quarter <label>`, under a separate configured parent — full detail in `.claude/skills/metrics-publisher/references/confluence-contract.md`).
 - **No MCP dependency** — plain Python + REST API tokens, runnable headless via cron/CI.
 
 ## Metrics (13 total)
@@ -78,8 +146,8 @@ confluence_client.py            → Creates/updates child page + uploads attachm
 
 | Metric | Kind | Chart | Description |
 |--------|------|-------|-------------|
-| `cve_weekly_coverage` | coverage | stacked bar | Cumulative CVE emulations: Done vs Remaining over the quarter |
-| `lc_weekly_coverage` | coverage | stacked bar | Same for LightCycles |
+| `cve_weekly_coverage` | count (by_value) | horizontal bar | Current-quarter CVE emulations: Done vs Closed vs In Progress |
+| `lc_weekly_coverage` | count (by_value) | horizontal bar | Same for LightCycles |
 
 ### Intake vs Output
 
@@ -122,6 +190,8 @@ confluence_client.py            → Creates/updates child page + uploads attachm
 |--------|------|-------|-------------|
 | `external_requests` | count (by_value) | bar | ATDTRequest tickets: Done / Closed / Open |
 
+> **Weekly-cadence subset** (`/run-metrics --weekly` / `run --weekly`): `cve_weekly_coverage`, `lc_weekly_coverage`, `cve_created_vs_resolved`, `lc_created_vs_resolved`, `weekly_idds` — see `weekly_metrics` in `config/settings.yaml`.
+
 ## How Computation Works
 
 The pipeline has three decoupled phases:
@@ -141,6 +211,8 @@ The pipeline has three decoupled phases:
 | `created_vs_resolved` | Created vs resolved per week | 2N (N weeks) |
 | `ratio` | % (JQL or IDD link-based) | 2-3 calls |
 | `duration` | Days between dates | 1 search + changelogs |
+
+Full schema (all fields per kind, `group_by` dimension types, chart types): `.claude/skills/metric-author/references/metric-schema.md`.
 
 ### Fiscal Calendar Auto-Resolution (`calendar.py`)
 
@@ -168,7 +240,7 @@ Two-search approach (3 API calls total):
 
 ```
 config/
-  settings.yaml                 # Fiscal calendar, labels, section layout
+  settings.yaml                 # Fiscal calendar, labels, section layout, weekly_metrics
   metrics/                      # One YAML per metric (supports {{templates}})
     cve_weekly_coverage.yaml
     team_velocity.yaml
@@ -191,16 +263,24 @@ src/metrics_master/
     page_builder.py             # Confluence HTML assembly
 tests/
 output/                         # Generated charts + page preview (git-ignored)
+.claude/
+  commands/                     # Slash command entry points
+  agents/                       # Enforcement — role, constraints, output contract
+  skills/                       # Knowledge — procedure + references/, preloaded per agent
 ```
 
 ## Adding a Metric
 
+Preferred: `/add-metric my_metric` (the `metric-author` agent handles steps 1-5, then hands back for review).
+
+Manual equivalent:
+
 1. Create config: `python -m metrics_master.cli add-metric my_metric`
 2. Edit `config/metrics/my_metric.yaml` — set filter (JQL), measure kind, group_by, chart type
-3. Add the metric name to a section in `config/settings.yaml`
+3. Add the metric name to a section in `config/settings.yaml` (and to `weekly_metrics:` if weekly-cadence)
 4. Validate: `python -m metrics_master.cli validate`
 5. Test: `python -m metrics_master.cli run --dry-run --metric my_metric`
-6. Publish: `python -m metrics_master.cli run --metric my_metric`
+6. Publish: `/run-metrics --metric my_metric` (or `python -m metrics_master.cli run --metric my_metric`)
 
 ### Supported measure kinds
 
